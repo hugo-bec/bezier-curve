@@ -14,7 +14,7 @@ struct Point{
 
 
 SDL_Window* pWindow = NULL;
-SDL_Renderer* renderer;//Déclaration du renderer
+SDL_Renderer* renderer;
 
 int indexPoint;
 size_t nbPoint;
@@ -44,13 +44,28 @@ void afficherPoint(Point p, int epaisseur, int r, int g, int b){
 }
 
 
+/*
+ * retourne le point millieu entre p1 et p2 dans buffer
+ */
 void millieu(Point p1, Point p2, Point* pbuffer){
-	//Point* p = malloc(sizeof(Point));
 	pbuffer->x = (p1.x + p2.x)/2;
 	pbuffer->y = (p1.y + p2.y)/2;
 }
 
-Point* getPointCalteljau_v2(Point* tp, int size, Point* buffer){
+
+/*
+ * Retourne les points généré par l'algorithme de Casteljau dans buffer.
+ *
+ * Par exemple pour 3 points donné (p1, p2 et p3), Il retournera les 5 points p1, p12, p123, p23 et p3;
+ * où p12 est le point millieu de p1 et p2, et p123 est le point de millieu de p12 et p23, ainsi de suite. (voir schéma ci-dessous)
+ *
+ *	p1
+ *		millieu(p1,p2) > p12
+ *	p2							millieu(p12,p23) > p123
+ *		millieu(p2,p3) > p23
+ *	p3
+ */
+void getPointCalteljau(Point* tp, int size, Point* buffer){
 	if (size == 1) {
 		buffer[0] = tp[0];
 	} else {
@@ -58,15 +73,21 @@ Point* getPointCalteljau_v2(Point* tp, int size, Point* buffer){
 		buffer[(size*2)-2] = tp[size-1];
 
 		for (size_t i=0; i<size-1; i++) {
-			/*tp[i] = **/ millieu(tp[i], tp[i+1], tp+i);
+			millieu(tp[i], tp[i+1], tp+i);
 		}
-		getPointCalteljau_v2(tp, size-1, buffer+1);
+		getPointCalteljau(tp, size-1, buffer+1);
 	}
 }
 
-// prec = precicion
-void CasteljauRec(Point* tpinit, int sizei, int prec) {
-	if (prec == 0) {
+/*
+ * Trace la courbe de Bezier à partir des points d'origine avec l'aide des points de Casteljau.
+ *
+ * Pour chaque suite de points de Casteljau reçu, on raplique la fonction sur les n/2+1 premiers points,
+ * puis sur les n/2 dernier points; ainsi de suite jusqu'à une certaine precision donnée ce qui permet de
+ * tracer la courbe d'une precision plus ou moins fidèle.
+ */
+void CasteljauRec(Point* tpinit, int sizei, int precision) {
+	if (precision == 0) {
 		for (size_t i=0; i<sizei; i++) {
 			afficherPoint(tpinit[i], epaisseur, 255, 255, 255);
 
@@ -76,16 +97,18 @@ void CasteljauRec(Point* tpinit, int sizei, int prec) {
 	}
 	else {
 		Point* buffer = malloc(sizeof(Point) * ((sizei*2)-1) );
+		getPointCalteljau(tpinit, sizei, buffer);
 
-		getPointCalteljau_v2(tpinit, sizei, buffer);
-		//free(tpinit);
-
-		CasteljauRec(buffer, sizei, prec-1);
-		CasteljauRec(buffer+(sizei-1), sizei, prec-1);
+		CasteljauRec(buffer, sizei, precision-1);
+		CasteljauRec(buffer+(sizei-1), sizei, precision-1);
 		free(buffer);
 	}
 }
 
+
+/*
+ * Appel CasteljauRec avec une copie des points d'origines pour ne pas influencer leurs coordonnées.
+ */
 void Casteljau(Point* tpinit, int sizei, int prec) {
 	Point* tpinit_copy = malloc(sizeof(Point) * sizei);
 	for (size_t i=0; i<sizei; i++) {
@@ -96,6 +119,9 @@ void Casteljau(Point* tpinit, int sizei, int prec) {
 }
 
 
+/*
+ * Permet d'obtenir le bon index du prochain point quand on déplace la molette.
+ */
 int getNouvelIndex(int indexPoint, int nbPas, int limite) {
 	if (((indexPoint+nbPas) < 0)) {
 		return (indexPoint+nbPas)%limite + limite;
@@ -105,7 +131,9 @@ int getNouvelIndex(int indexPoint, int nbPas, int limite) {
 	}
 }
 
-
+/*
+ * Retrace la courbe et les points d'origine avec les coordonnées actuelles.
+ */
 void actualiserCourbe() {
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0,   255);
 	SDL_RenderClear(renderer);
@@ -117,6 +145,7 @@ void actualiserCourbe() {
 	}
 	SDL_RenderPresent(renderer);
 }
+
 
 void afficherAideParametres(){
 	printf("Paramètres possibles et cumulables :\n");
@@ -133,12 +162,13 @@ void afficherAideProgramme(){
 }
 
 
+
 int main(int argc, char const *argv[])
 {
 	int quit = 0;
 	SDL_Event event;
 	int holdClic = 0;
-	int actualiser;
+	//int actualiser;
 	time_t t;
 
 
@@ -214,7 +244,7 @@ int main(int argc, char const *argv[])
 		actualiserCourbe();
 
 		while (!quit) {
-			actualiser = 0;
+			//actualiser = 0;
 			while (SDL_PollEvent(&event)){
 				switch(event.type) {
 			        case SDL_QUIT: // Clic sur la croix
