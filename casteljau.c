@@ -118,10 +118,18 @@ void actualiserCourbe() {
 	SDL_RenderPresent(renderer);
 }
 
-void afficherAide(){
+void afficherAideParametres(){
+	printf("Paramètres possibles et cumulables :\n");
 	printf("\'n\' suivi du nombre associé pour changer le nombre de point (4 par defaut).\n");
 	printf("\'p\' suivi du nombre associé pour changer la précision de la courbe (8 par defaut).\n");
 	printf("\'e\' suivi du nombre associé pour changer l'épaisseur en pixel du trait de la courbe (3 par defaut).\n");
+	printf("(Exemple: $./casteljau.c n5 p8 e2)\n");
+	printf("Utilisez --help pour avoir plus de renseignement sur le programme.\n\n");
+}
+void afficherAideProgramme(){
+	printf("Contrôles du programme :\n");
+	printf("- Molette du haut/bas pour changer de point sélectionné.\n");
+	printf("- Clique gauche pour déplacer le point sélectionné.\n\n");
 }
 
 
@@ -135,10 +143,8 @@ int main(int argc, char const *argv[])
 
 
 	for (size_t i=1; i<argc; i++) {
-		//printf("argmessage\n");
 		if (strlen(argv[i]) > 1) {
 			if (argv[i][0] == 'n') {
-				//printf("atoi test: %d\n", atoi(argv[i]+1));
 				nbPoint = (unsigned)atoi(argv[i]+1);
 			}
 			else if (argv[i][0] == 'p') {
@@ -148,17 +154,21 @@ int main(int argc, char const *argv[])
 				epaisseur = (unsigned)atoi(argv[i]+1);
 			}
 			else if (strcmp(argv[i], "--help") == 0) {
-				afficherAide();
+				printf("\n");
+				afficherAideParametres();
+				afficherAideProgramme();
+				printf("Page GitHub consacrée au projet : https://github.com/hugo-bec/casteljau\n");
+				printf("Programme développé par Hugo BEC.\n\n");
 				exit(0);
 			}
 			else {
 				printf("Erreur: \'%c\' argument invalide.\n", argv[i][0]);
-				afficherAide();
+				afficherAideParametres();
 				return EXIT_FAILURE;
 			}
 		} else {
 			printf("Erreur: l'argument doit être suivi d'une valeur entière.\n");
-			afficherAide();
+			afficherAideParametres();
 			return EXIT_FAILURE;
 		}
 	}
