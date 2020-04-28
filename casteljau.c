@@ -17,8 +17,9 @@ SDL_Window* pWindow = NULL;
 SDL_Renderer* renderer;//Déclaration du renderer
 
 int indexPoint;
-int nbPoint;
-int precision;
+size_t nbPoint;
+size_t precision;
+size_t epaisseur;
 Point* tabp;
 Point* pointActuel;
 
@@ -67,7 +68,7 @@ Point* getPointCalteljau_v2(Point* tp, int size, Point* buffer){
 void CasteljauRec(Point* tpinit, int sizei, int prec) {
 	if (prec == 0) {
 		for (size_t i=0; i<sizei; i++) {
-			afficherPoint(tpinit[i], 3, 255, 255, 255);
+			afficherPoint(tpinit[i], epaisseur, 255, 255, 255);
 
 			//SDL_Delay(10);
 			//SDL_RenderPresent(renderer);
@@ -117,6 +118,12 @@ void actualiserCourbe() {
 	SDL_RenderPresent(renderer);
 }
 
+void afficherAide(){
+	printf("\'n\' suivi du nombre associé pour changer le nombre de point (4 par defaut).\n");
+	printf("\'p\' suivi du nombre associé pour changer la précision de la courbe (8 par defaut).\n");
+	printf("\'e\' suivi du nombre associé pour changer l'épaisseur en pixel du trait de la courbe (3 par defaut).\n");
+}
+
 
 int main(int argc, char const *argv[])
 {
@@ -126,20 +133,59 @@ int main(int argc, char const *argv[])
 	int actualiser;
 	time_t t;
 
+
+	for (size_t i=1; i<argc; i++) {
+		//printf("argmessage\n");
+		if (strlen(argv[i]) > 1) {
+			if (argv[i][0] == 'n') {
+				//printf("atoi test: %d\n", atoi(argv[i]+1));
+				nbPoint = (unsigned)atoi(argv[i]+1);
+			}
+			else if (argv[i][0] == 'p') {
+				precision = (unsigned)atoi(argv[i]+1);
+			}
+			else if (argv[i][0] == 'e') {
+				epaisseur = (unsigned)atoi(argv[i]+1);
+			}
+			else if (strcmp(argv[i], "--help") == 0) {
+				afficherAide();
+				exit(0);
+			}
+			else {
+				printf("Erreur: \'%c\' argument invalide.\n", argv[i][0]);
+				afficherAide();
+				return EXIT_FAILURE;
+			}
+		} else {
+			printf("Erreur: l'argument doit être suivi d'une valeur entière.\n");
+			afficherAide();
+			return EXIT_FAILURE;
+		}
+	}
+
+	if (nbPoint == 0) {
+		nbPoint = 4;
+	}
+	if (precision == 0) {
+		precision = 8;
+	}
+	if (epaisseur == 0) {
+		epaisseur = 3;
+	}
+
 	indexPoint = 0;
-	nbPoint = 4;
-	precision = 8;
 	tabp = malloc(sizeof(Point) * nbPoint);
 	pointActuel = tabp+indexPoint;
 
 	if (SDL_Init(SDL_INIT_VIDEO) != 0 ) {
-      fprintf(stdout,"Échec de l'initialisation de la SDL (%s)\n",SDL_GetError());
-      return EXIT_FAILURE;
-   }
+    	fprintf(stdout,"Échec de l'initialisation de la SDL (%s)\n",SDL_GetError());
+		return EXIT_FAILURE;
+    }
+
 	pWindow = SDL_CreateWindow("Casteljau",
-	 SDL_WINDOWPOS_UNDEFINED,
+	SDL_WINDOWPOS_UNDEFINED,
     SDL_WINDOWPOS_UNDEFINED,
-    LARGEUR_FENETRE, HAUTEUR_FENETRE, SDL_WINDOW_SHOWN);
+    LARGEUR_FENETRE, HAUTEUR_FENETRE, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
 	if(pWindow) {
 		renderer = SDL_CreateRenderer(pWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC); // Création du renderer
@@ -180,6 +226,7 @@ int main(int argc, char const *argv[])
 						pointActuel = tabp+indexPoint;
 						//actualiser = 1;
 						break;
+
 				}
 				if (holdClic) {
 					pointActuel->x = event.button.x;
