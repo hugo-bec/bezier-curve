@@ -3,14 +3,16 @@
 #include <time.h>
 #include <SDL2/SDL.h>
 
+//gcc -o "casteljau.out" casteljau.c `sdl2-config --cflags --libs`
+
 typedef struct Point Point;
 struct Point{
 	double x;
 	double y;
 };
 
-#define HAUTEUR_FENETRE 500
-#define LARGEUR_FENETRE 750
+#define HAUTEUR_FENETRE 1000
+#define LARGEUR_FENETRE 1500
 
 
 SDL_Window* pWindow = NULL;
@@ -34,11 +36,10 @@ void afficherPoint(Point p, int epaisseur, int r, int g, int b){
 		epaisseur=1;
 		SDL_RenderDrawPoint(renderer, p.x, p.y);
 	} else {
-		for (size_t i=0; i<epaisseur; i++) {
-			for (size_t j=0; j<epaisseur; j++) {
-				SDL_RenderDrawPoint(renderer, p.x+i-(epaisseur/2), p.y+j-(epaisseur/2));
-			}
-		}
+		SDL_Rect rect;
+		rect.x = p.x-(epaisseur/2); rect.y = p.y-(epaisseur/2);
+		rect.w = epaisseur; rect.h = epaisseur;
+		SDL_RenderFillRect(renderer, &rect);
 	}
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0,   255);
 }
@@ -50,6 +51,11 @@ void afficherPoint(Point p, int epaisseur, int r, int g, int b){
 void millieu(Point p1, Point p2, Point* pbuffer){
 	pbuffer->x = (p1.x + p2.x)/2;
 	pbuffer->y = (p1.y + p2.y)/2;
+}
+
+void millieuv2(Point* p1, Point* p2, Point* pbuffer){
+	pbuffer->x = (p1->x + p2->x)/2;
+	pbuffer->y = (p1->y + p2->y)/2;
 }
 
 
@@ -73,7 +79,10 @@ void getPointCalteljau(Point* tp, int size, Point* buffer){
 		buffer[(size*2)-2] = tp[size-1];
 
 		for (size_t i=0; i<size-1; i++) {
-			millieu(tp[i], tp[i+1], tp+i);
+			//millieu(tp[i], tp[i+1], tp+i);
+			millieuv2(tp+i, tp+(i+1), tp+i);
+			//tp+1->x
+			//tp[1].x
 		}
 		getPointCalteljau(tp, size-1, buffer+1);
 	}
@@ -86,6 +95,7 @@ void getPointCalteljau(Point* tp, int size, Point* buffer){
  * puis sur les n/2 dernier points; ainsi de suite jusqu'à une certaine precision donnée ce qui permet de
  * tracer la courbe d'une precision plus ou moins fidèle.
  */
+/*
 void CasteljauRec(Point* tpinit, int sizei, int precision) {
 	if (precision == 0) {
 		for (size_t i=0; i<sizei; i++) {
@@ -102,6 +112,23 @@ void CasteljauRec(Point* tpinit, int sizei, int precision) {
 		CasteljauRec(buffer, sizei, precision-1);
 		CasteljauRec(buffer+(sizei-1), sizei, precision-1);
 		free(buffer);
+	}
+}*/
+
+void CasteljauRec(Point* tpinit, int sizei, int precision) {
+	if (precision == 0) {
+		for (size_t i=0; i<sizei; i++) {
+			afficherPoint(tpinit[i], epaisseur, 255, 255, 255);
+			//SDL_Delay(10);
+			//SDL_RenderPresent(renderer);
+		}
+	}
+	else {
+		Point newPoint[(sizei*2)-1];
+		getPointCalteljau(tpinit, sizei, newPoint);
+
+		CasteljauRec(newPoint, sizei, precision-1);
+		CasteljauRec(newPoint+(sizei-1), sizei, precision-1);
 	}
 }
 
@@ -152,7 +179,7 @@ void afficherAideParametres(){
 	printf("\'n\' suivi du nombre associé pour changer le nombre de point (4 par defaut).\n");
 	printf("\'p\' suivi du nombre associé pour changer la précision de la courbe (8 par defaut).\n");
 	printf("\'e\' suivi du nombre associé pour changer l'épaisseur en pixel du trait de la courbe (3 par defaut).\n");
-	printf("(Exemple: $./casteljau.c n5 p8 e2)\n");
+	printf("(Exemple: $./casteljau.out n5 p8 e2)\n");
 	printf("Utilisez --help pour avoir plus de renseignement sur le programme.\n\n");
 }
 void afficherAideProgramme(){
@@ -170,7 +197,7 @@ int main(int argc, char const *argv[])
 	int holdClic = 0;
 	//int actualiser;
 	time_t t;
-
+	struct timespec start, end;
 
 	for (size_t i=1; i<argc; i++) {
 		if (strlen(argv[i]) > 1) {
@@ -225,7 +252,9 @@ int main(int argc, char const *argv[])
 	pWindow = SDL_CreateWindow("Casteljau",
 	SDL_WINDOWPOS_UNDEFINED,
     SDL_WINDOWPOS_UNDEFINED,
-    LARGEUR_FENETRE, HAUTEUR_FENETRE, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+    LARGEUR_FENETRE,
+	HAUTEUR_FENETRE,
+	SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
 	if(pWindow) {
 		renderer = SDL_CreateRenderer(pWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC); // Création du renderer
@@ -240,8 +269,8 @@ int main(int argc, char const *argv[])
 			tabp[i].x = rand() % LARGEUR_FENETRE;
 			tabp[i].y = rand() % HAUTEUR_FENETRE;
 		}
-
 		actualiserCourbe();
+
 
 		while (!quit) {
 			//actualiser = 0;
